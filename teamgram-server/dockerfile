@@ -1,5 +1,6 @@
 FROM golang:1.18
-RUN apt-get update && apt-get install xz-utils
+RUN apt-get update && apt-get install xz-utils -y --no-install-recommends && rm -rf /var/lib/apt/lists/*
+# Установка Ffmpeg
 WORKDIR /tmp
 RUN wget https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
 RUN xz -d ffmpeg-release-amd64-static.tar.xz
@@ -8,7 +9,7 @@ RUN cp /tmp/ffmpeg-5.0.1-amd64-static/ff* /usr/local/bin/
 WORKDIR /usr/src/
 RUN git clone https://github.com/teamgram/teamgram-server.git
 WORKDIR /usr/src/teamgram-server
-# Компиляция
+# Компиляция teamgram-server
 WORKDIR /usr/src/teamgram-server/scripts
 RUN ./build.sh
 WORKDIR /usr/src/teamgram-server/teamgramd/bin
