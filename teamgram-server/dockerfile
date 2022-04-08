@@ -5,9 +5,5 @@ WORKDIR /usr/src/teamgram-server
 # Компиляция
 WORKDIR /usr/src/teamgram-server/scripts
 RUN ./build.sh
-# Запуск
 WORKDIR /usr/src/teamgram-server/teamgramd/bin
-
-# CMD ["chmod", "777", "/usr/src/teamgram-server/teamgramd/bin/runall2.sh"]
 ENTRYPOINT /usr/src/teamgram-server/teamgramd/bin/runall2.sh && tail -f /dev/null
-
