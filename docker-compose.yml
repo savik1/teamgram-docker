@@ -9,9 +9,15 @@ services:
       - etcd_data:/etcd_data
     network_mode: host
     command: '-data-dir=/etcd-data --name etcd --initial-advertise-peer-urls http://${HostIP:-127.0.0.1}:2380 --listen-peer-urls http://0.0.0.0:2380 --advertise-client-urls http://${HostIP:-127.0.0.1}:2379 --listen-client-urls http://0.0.0.0:2379 --initial-cluster etcd=http://${HostIP:-127.0.0.1}:2380'
+
   redis:
     image: redis
     network_mode: host
+    healthcheck:
+      test: [ 'CMD', 'redis-cli', 'ping' ]
+      interval: 3s
+      timeout: 10s
+      retries: 5
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.0.1
@@ -20,6 +26,12 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+#      ALLOW_ANONYMOUS_LOGIN: yes
+    healthcheck:
+      test: ["CMD", "sh", "-c", "nc -nz 127.0.0.1 2181"]
+      interval: 5s
+      timeout: 5s
+      retries: 120
 
   broker:
     image: confluentinc/cp-kafka:7.0.1
@@ -28,7 +40,8 @@ services:
     # To learn about configuring Kafka for access across networks see
     # https://www.confluent.io/blog/kafka-client-cannot-connect-to-broker-on-aws-on-docker-etc/
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'localhost:2181'
@@ -37,6 +50,12 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: ["CMD", "sh", "-c", "nc -nz 127.0.0.1 9092"]
+      interval: 5s
+      timeout: 5s
+      retries: 120
+
 
   mysql:
     build: db
@@ -50,6 +69,10 @@ services:
       MYSQL_USER: teamgram
       MYSQL_PASSWORD: 
       MYSQL_ALLOW_EMPTY_PASSWORD: "true"
+    healthcheck:
+      test: "/etc/init.d/mysql status"
+      interval: 5s
+      timeout: 5s
 
   minio:
     image: minio/minio
@@ -60,18 +83,26 @@ services:
       MINIO_ACCESS_KEY: minio
       MINIO_SECRET_KEY: miniostorage
     command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   
   teamgram:
     build: teamgram-server
     network_mode: host
     depends_on:
-      - zookeeper
-      - etcd
-      - redis
-      - broker  
-      - mysql
-      - minio
-
+#      etcd
+#        condition: service_healthy
+      redis:
+        condition: service_healthy
+      broker:  
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
 volumes:
   minio_data:
   etcd_data:

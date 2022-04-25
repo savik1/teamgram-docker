@@ -4,6 +4,6 @@ RUN git config --global http.sslverify "false"
 WORKDIR /tmp
 RUN git clone https://github.com/teamgram/teamgram-server.git
 WORKDIR /tmp/teamgram-server/teamgramd/sql
+RUN mv teamgram2.sql /docker-entrypoint-initdb.d/master.sql
 RUN mv *.sql /docker-entrypoint-initdb.d
 RUN rm -rf /tmp/teamgram-server
-
